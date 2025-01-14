@@ -4,6 +4,11 @@ from flask_cors import CORS
 from werkzeug.datastructures import FileStorage
 from inference import InferenceModel
 import torch
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -56,24 +61,40 @@ class Prediction(Resource):
         - nodes_*.csv: 节点数据文件
         """
         try:
-            # 获取上传的文件
-            args = upload_parser.parse_args()
-            file = args['file']
+            logger.debug("开始处理文件上传请求")
             
+            # 检查是否有文件上传
+            if 'file' not in request.files:
+                logger.error("没有检测到文件上传")
+                return {'error': '没有上传文件'}, 400
+            
+            file = request.files['file']
             if not file:
-                api.abort(400, "没有上传文件")
-                
+                logger.error("文件对象为空")
+                return {'error': '文件对象为空'}, 400
+            
+            if not file.filename:
+                logger.error("文件名为空")
+                return {'error': '文件名为空'}, 400
+            
             if not file.filename.endswith('.zip'):
-                api.abort(400, "请上传ZIP格式的文件")
+                logger.error(f"不支持的文件类型: {file.filename}")
+                return {'error': '请上传ZIP格式的文件'}, 400
+            
+            logger.debug(f"开始处理文件: {file.filename}")
             
             # 处理数据集并进行推理
             dataset_path = inference_model.process_uploaded_dataset(file)
+            logger.debug(f"数据集处理完成，保存在: {dataset_path}")
+            
             result = inference_model.infer(dataset_path)
+            logger.debug("推理完成")
             
             return {'result': result}
             
         except Exception as e:
-            api.abort(500, f"处理过程出错: {str(e)}")
+            logger.exception("处理过程出错")
+            return {'error': f"处理过程出错: {str(e)}"}, 500
 
 @ns.route('/health')
 class Health(Resource):
