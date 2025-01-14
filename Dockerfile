@@ -5,7 +5,7 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # 安装系统依赖
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y libcurl4\
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,7 +20,7 @@ EXPOSE 5000
 
 # 设置环境变量
 ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
+ENV FLASK_ENV=0.0.0.0
 
 # 启动命令
 CMD ["python", "app.py"] 
