@@ -6,7 +6,6 @@ import numpy as np
 import os
 import shutil
 import zipfile
-import yaml
 from methods.train import model, initialize_features, edge_initialize_features
 
 class InferenceModel:
@@ -41,33 +40,13 @@ class InferenceModel:
             
             # 解压文件
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                # 修改解压方式，处理文件名编码
-                for file_info in zip_ref.filelist:
-                    try:
-                        # 尝试使用UTF-8解码
-                        file_info.filename = file_info.filename.encode('cp437').decode('utf-8')
-                    except UnicodeDecodeError:
-                        # 如果失败，尝试使用GBK解码
-                        file_info.filename = file_info.filename.encode('cp437').decode('gbk')
-                    zip_ref.extract(file_info, save_dir)
+                zip_ref.extractall(save_dir)
             
             # 验证必要的文件是否存在
-            required_files = ['meta.yaml']
+            required_files = ['meta.yaml']  # 添加其他必要的文件
             for file in required_files:
-                file_path = os.path.join(save_dir, file)
-                if not os.path.exists(file_path):
+                if not os.path.exists(os.path.join(save_dir, file)):
                     raise Exception(f"缺少必要的文件: {file}")
-                # 验证yaml文件的编码
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        yaml.safe_load(f)
-                except UnicodeDecodeError:
-                    # 如果UTF-8失败，尝试使用GBK重新读取
-                    with open(file_path, 'r', encoding='gbk') as f:
-                        content = f.read()
-                    # 将内容以UTF-8重新写入
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(content)
             
             return save_dir
             
@@ -81,44 +60,37 @@ class InferenceModel:
         
     def prepare_graph(self, data_path):
         """准备图数据"""
-        try:
-            # 加载数据集
-            dataset = dgl.data.CSVDataset(
-                data_path,
-                force_reload=True,
-                csv_kwargs={'encoding': 'utf-8'}
-            )
-            g = dataset[0]
-            
-            # 准备特征
-            node_features = {}
-            edge_features = {}
-            feature_dim = g.nodes['app'].data['feat'].shape[1]
-            edge_feature_dim = g.edges['edges_1'].data['feat'].shape[1]
-            
-            # 初始化特征
-            initialize_features(g, feature_dim, init_type='zero')
-            edge_initialize_features(g, edge_feature_dim, init_type='zero')
-            
-            # 收集特征
-            for ntype in g.ntypes:
-                feat = g.nodes[ntype].data['feat']
-                if feat is not None:
-                    node_features[ntype] = feat
-                    
-            for etype in g.etypes:
-                feat = g.edges[etype].data['feat']
-                if feat is not None:
-                    edge_features[etype] = feat
-                    
-            # 将数据移到指定设备
-            g = g.to(self.device)
-            node_features = {ntype: feats.to(self.device) for ntype, feats in node_features.items()}
-            edge_features = {etype: feats.to(self.device) for etype, feats in edge_features.items()}
-            
-            return g, node_features, edge_features
-        except Exception as e:
-            raise Exception(f"准备图数据时出错: {str(e)}")
+        # 加载数据集
+        dataset = dgl.data.CSVDataset(data_path)
+        g = dataset[0]
+        
+        # 准备特征
+        node_features = {}
+        edge_features = {}
+        feature_dim = g.nodes['app'].data['feat'].shape[1]
+        edge_feature_dim = g.edges['edges_1'].data['feat'].shape[1]
+        
+        # 初始化特征
+        initialize_features(g, feature_dim, init_type='zero')
+        edge_initialize_features(g, edge_feature_dim, init_type='zero')
+        
+        # 收集特征
+        for ntype in g.ntypes:
+            feat = g.nodes[ntype].data['feat']
+            if feat is not None:
+                node_features[ntype] = feat
+                
+        for etype in g.etypes:
+            feat = g.edges[etype].data['feat']
+            if feat is not None:
+                edge_features[etype] = feat
+                
+        # 将数据移到指定设备
+        g = g.to(self.device)
+        node_features = {ntype: feats.to(self.device) for ntype, feats in node_features.items()}
+        edge_features = {etype: feats.to(self.device) for etype, feats in edge_features.items()}
+        
+        return g, node_features, edge_features
         
     def infer(self, data_path):
         """
