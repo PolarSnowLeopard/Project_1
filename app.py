@@ -5,12 +5,23 @@ from werkzeug.datastructures import FileStorage
 from inference import InferenceModel
 import torch
 import logging
+import sys
+import codecs
 
 # 配置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(codecs.getwriter('utf-8')(sys.stdout.buffer))
+    ]
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+# 设置响应编码
+app.config['JSON_AS_ASCII'] = False
+app.config['RESTX_JSON'] = {'ensure_ascii': False}
 
 CORS(app)
 
@@ -61,39 +72,39 @@ class Prediction(Resource):
         - nodes_*.csv: 节点数据文件
         """
         try:
-            logger.debug("开始处理文件上传请求")
+            logger.debug("开始处理文件上传请求".encode('utf-8').decode('utf-8'))
             
             # 检查是否有文件上传
             if 'file' not in request.files:
-                logger.error("没有检测到文件上传")
+                logger.error("没有检测到文件上传".encode('utf-8').decode('utf-8'))
                 return {'error': '没有上传文件'}, 400
             
             file = request.files['file']
             if not file:
-                logger.error("文件对象为空")
+                logger.error("文件对象为空".encode('utf-8').decode('utf-8'))
                 return {'error': '文件对象为空'}, 400
             
             if not file.filename:
-                logger.error("文件名为空")
+                logger.error("文件名为空".encode('utf-8').decode('utf-8'))
                 return {'error': '文件名为空'}, 400
             
             if not file.filename.endswith('.zip'):
-                logger.error(f"不支持的文件类型: {file.filename}")
+                logger.error(f"不支持的文件类型: {file.filename}".encode('utf-8').decode('utf-8'))
                 return {'error': '请上传ZIP格式的文件'}, 400
             
-            logger.debug(f"开始处理文件: {file.filename}")
+            logger.debug(f"开始处理文件: {file.filename}".encode('utf-8').decode('utf-8'))
             
             # 处理数据集并进行推理
             dataset_path = inference_model.process_uploaded_dataset(file)
-            logger.debug(f"数据集处理完成，保存在: {dataset_path}")
+            logger.debug(f"数据集处理完成，保存在: {dataset_path}".encode('utf-8').decode('utf-8'))
             
             result = inference_model.infer(dataset_path)
-            logger.debug("推理完成")
+            logger.debug("推理完成".encode('utf-8').decode('utf-8'))
             
             return {'result': result}
             
         except Exception as e:
-            logger.exception("处理过程出错")
+            logger.exception("处理过程出错".encode('utf-8').decode('utf-8'))
             return {'error': f"处理过程出错: {str(e)}"}, 500
 
 @ns.route('/health')
