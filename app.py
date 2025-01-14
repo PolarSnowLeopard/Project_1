@@ -1,10 +1,14 @@
 from flask import Flask, request
 from flask_restx import Api, Resource, fields
+from flask_cors import CORS
 from werkzeug.datastructures import FileStorage
 from inference import InferenceModel
 import torch
 
 app = Flask(__name__)
+
+CORS(app)
+
 api = Api(app, version='1.0', 
          title='图神经网络推理API',
          description='用于处理图数据集并进行模型推理的API接口',
