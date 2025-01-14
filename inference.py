@@ -104,7 +104,6 @@ class InferenceModel:
             # 准备数据
             g, node_features, edge_features = self.prepare_graph(data_path)
             
-            return "1"
             # 进行推理
             with torch.no_grad():
                 logits = self.model(g, node_features, edge_features)
