@@ -65,6 +65,7 @@ class Prediction(Resource):
             
             # 检查是否有文件上传
             if 'file' not in request.files:
+                logger.error(request.files)
                 logger.error("没有检测到文件上传")
                 return {'error': '没有上传文件'}, 400
             
