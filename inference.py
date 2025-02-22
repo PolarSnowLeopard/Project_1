@@ -1,3 +1,4 @@
+from typing import Dict, Tuple, Union, BinaryIO
 import dgl
 import torch
 import torch.nn as nn
@@ -9,12 +10,12 @@ import zipfile
 from methods.train import model, initialize_features, edge_initialize_features
 
 class InferenceModel:
-    def __init__(self, model_path='checkpoint/model.pt', device='cpu'):
+    def __init__(self, model_path: str = 'checkpoint/model.pt', device: str = 'cpu') -> None:
         self.model_path = model_path
         self.device = torch.device(device)
         self.model = None
         
-    def load_model(self, in_feats, h_feats, out_feats):
+    def load_model(self, in_feats: int, h_feats: int, out_feats: int) -> None:
         """加载预训练模型"""
         self.model = model(in_feats, h_feats, out_feats)
             
@@ -23,7 +24,7 @@ class InferenceModel:
         self.model.to(self.device)
         self.model.eval()
 
-    def process_uploaded_dataset(self, zip_file, save_dir='temp_dataset'):
+    def process_uploaded_dataset(self, zip_file: BinaryIO, save_dir: str = 'temp_dataset') -> str:
         """
         处理上传的数据集压缩文件
         Args:
@@ -58,7 +59,9 @@ class InferenceModel:
                 shutil.rmtree(save_dir)
             raise Exception(f"处理数据集时出错: {str(e)}")
         
-    def prepare_graph(self, data_path):
+    def prepare_graph(self, data_path: str) -> Tuple[dgl.DGLGraph, 
+                                                    Dict[str, torch.Tensor], 
+                                                    Dict[str, torch.Tensor]]:
         """准备图数据"""
         # 加载数据集
         dataset = dgl.data.CSVDataset(data_path)
@@ -92,7 +95,7 @@ class InferenceModel:
         
         return g, node_features, edge_features
         
-    def infer(self, data_path):
+    def infer(self, data_path: str) -> str:
         """
         进行模型推理
         Args:
@@ -129,7 +132,7 @@ class InferenceModel:
                 shutil.rmtree(data_path, ignore_errors=True)
             return f"推理过程出错: {str(e)}"
 
-def main():
+def main() -> None:
     # 示例用法
     inference_model = InferenceModel(
         model_path='checkpoint/model.pt',
